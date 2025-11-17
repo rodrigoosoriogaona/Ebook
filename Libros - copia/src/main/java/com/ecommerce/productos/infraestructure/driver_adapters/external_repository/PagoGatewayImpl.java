@@ -10,17 +10,23 @@ import org.springframework.web.client.RestTemplate;
 @Repository
 @RequiredArgsConstructor
 public class PagoGatewayImpl implements PagoGateway {
+
     private final RestTemplate restTemplate;
 
     @Override
-    public boolean procesarPago(Long usuarioId, Double monto) {
+    public boolean procesarPago(Long transaccionId, Long usuarioId, Double monto) {
         try {
             String url = "http://localhost:9093/api/ecommerce/pagos/procesar" +
-                    "?usuarioId=" + usuarioId + "&monto=" + monto + "&metodoPago=TARJETA";
+                    "?transaccionId=" + transaccionId +
+                    "&usuarioId=" + usuarioId +
+                    "&monto=" + monto +
+                    "&metodoPago=TARJETA";
 
             ResponseEntity<String> response = restTemplate.postForEntity(url, null, String.class);
             return response.getStatusCode().is2xxSuccessful();
+
         } catch (Exception e) {
+            System.out.println("ERROR en PagoGateway: " + e.getMessage());
             return false;
         }
     }

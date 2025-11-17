@@ -17,7 +17,6 @@ public class TransaccionUseCase {
     private final UsuarioGateway usuarioGateway;
     private final PagoGateway pagoGateway;
 
-    // Método que falta agregar
     public Transaccion consultarTransaccion(Long transaccionId) {
         return transaccionGateway.buscarPorId(transaccionId)
                 .orElseThrow(() -> new TransaccionNoEncontradaException("Transacción no encontrada con ID: " + transaccionId));
@@ -42,24 +41,32 @@ public class TransaccionUseCase {
             throw new TransaccionNoValidaException("No puedes comprar tu propio libro");
         }
 
-        // Procesar pago
-        Double montoTotal = libro.getPrecio() * cantidad;
-        if (!pagoGateway.procesarPago(compradorId, montoTotal)) {
-            throw new PagoFallidoException("Error al procesar el pago");
-        }
-
-        // Crear transacción
+        // 1. CREAR TRANSACCIÓN PRIMERO (estado PENDIENTE_PAGO)
         Transaccion transaccion = new Transaccion();
         transaccion.setLibroId(libroId);
         transaccion.setCompradorId(compradorId);
         transaccion.setVendedorId(libro.getUsuarioId());
         transaccion.setPrecio(libro.getPrecio());
         transaccion.setCantidad(cantidad);
-        transaccion.setEstado("PENDIENTE");
+        transaccion.setEstado("PENDIENTE_PAGO");
         transaccion.setFechaCreacion(LocalDateTime.now());
         transaccion.setFechaActualizacion(LocalDateTime.now());
 
-        return transaccionGateway.guardar(transaccion);
+        Transaccion transaccionGuardada = transaccionGateway.guardar(transaccion);
+
+        // 2. PROCESAR PAGO con el transaccionId real
+        Double montoTotal = libro.getPrecio() * cantidad;
+        if (!pagoGateway.procesarPago(transaccionGuardada.getIdTransaccion(), compradorId, montoTotal)) {
+            // Si el pago falla, actualizar estado de la transacción
+            transaccionGuardada.setEstado("PAGO_FALLIDO");
+            transaccionGateway.guardar(transaccionGuardada);
+            throw new PagoFallidoException("Error al procesar el pago");
+        }
+
+        // 3. ACTUALIZAR TRANSACCIÓN a PENDIENTE_CONFIRMACION
+        transaccionGuardada.setEstado("PENDIENTE_CONFIRMACION");
+        transaccionGuardada.setFechaActualizacion(LocalDateTime.now());
+        return transaccionGateway.guardar(transaccionGuardada);
     }
 
     public Transaccion confirmarTransaccion(Long transaccionId, Long vendedorId) {
@@ -67,6 +74,11 @@ public class TransaccionUseCase {
 
         if (!transaccion.getVendedorId().equals(vendedorId)) {
             throw new UsuarioNoAutorizadoException("No autorizado para confirmar esta transacción");
+        }
+
+        // Validar que la transacción está en estado PENDIENTE_CONFIRMACION
+        if (!"PENDIENTE_CONFIRMACION".equals(transaccion.getEstado())) {
+            throw new TransaccionNoValidaException("La transacción no está lista para confirmar. Estado actual: " + transaccion.getEstado());
         }
 
         transaccion.setEstado("CONFIRMADA");
@@ -87,8 +99,9 @@ public class TransaccionUseCase {
             throw new UsuarioNoAutorizadoException("No autorizado para cancelar esta transacción");
         }
 
-        // Revertir pago si es el comprador quien cancela
-        if (transaccion.getCompradorId().equals(usuarioId)) {
+        // Revertir pago si es el comprador quien cancela y el pago fue exitoso
+        if (transaccion.getCompradorId().equals(usuarioId) &&
+                ("PENDIENTE_CONFIRMACION".equals(transaccion.getEstado()) || "CONFIRMADA".equals(transaccion.getEstado()))) {
             pagoGateway.revertirPago(transaccionId.toString());
         }
 
