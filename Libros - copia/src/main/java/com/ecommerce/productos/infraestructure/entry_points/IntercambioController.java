@@ -8,9 +8,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/ecommerce/intercambios")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "http://127.0.0.1:5500")
 public class IntercambioController {
 
     private final IntercambioUseCase intercambioUseCase;
@@ -62,4 +65,19 @@ public class IntercambioController {
                     .body("Error al rechazar intercambio: " + e.getMessage());
         }
     }
+
+    @GetMapping("/{intercambioId}")
+    public ResponseEntity<?> consultarIntercambio(@PathVariable Long intercambioId) {
+        try {
+            Intercambio intercambio = intercambioUseCase.consultarIntercambio(intercambioId);
+            return ResponseEntity.ok(intercambio);
+        } catch (IntercambioNoEncontradoException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error al consultar intercambio: " + e.getMessage());
+        }
+    }
+
+
 }

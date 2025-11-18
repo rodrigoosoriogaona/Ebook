@@ -74,18 +74,29 @@ public class UsuarioController {
     }
     @CrossOrigin(origins = "http://127.0.0.1:5500")
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody Map<String, String> request) {
+    public ResponseEntity<?> login(@RequestBody Map<String, String> request) {
         String email = request.get("email");
         String password = request.get("password");
         Usuario usuario = usuarioGateway.buscarPorEmail(email);
-
 
         if (usuario == null || !usuarioUseCase.login(usuario, password).equals("Login exitoso")) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body("Login incorrecto, verificar correo y contraseña");
         }
 
-
-        return ResponseEntity.ok("Login exitoso");
+        return ResponseEntity.ok(usuario);  //  RETORNAMOS EL USUARIO COMPLETO
     }
+
+    @CrossOrigin(origins = "http://127.0.0.1:5500")
+    @GetMapping("/buscarPorEmail")
+    public ResponseEntity<Usuario> buscarPorEmail(@RequestParam String email) {
+        Usuario usuario = usuarioGateway.buscarPorEmail(email);
+
+        if (usuario == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+
+        return ResponseEntity.ok(usuario);
+    }
+
 }

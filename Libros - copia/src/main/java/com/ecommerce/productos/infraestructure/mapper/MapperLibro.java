@@ -12,7 +12,6 @@ public class MapperLibro {
         libroData.setIdLibro(libro.getIdLibro());
         libroData.setTitulo(libro.getTitulo());
         libroData.setAutor(libro.getAutor());
-        libroData.setIsbn(libro.getIsbn());
         libroData.setDescripcion(libro.getDescripcion());
         libroData.setPrecio(libro.getPrecio());
         libroData.setStock(libro.getStock());
@@ -27,7 +26,6 @@ public class MapperLibro {
         libro.setIdLibro(libroData.getIdLibro());
         libro.setTitulo(libroData.getTitulo());
         libro.setAutor(libroData.getAutor());
-        libro.setIsbn(libroData.getIsbn());
         libro.setDescripcion(libroData.getDescripcion());
         libro.setPrecio(libroData.getPrecio());
         libro.setStock(libroData.getStock());

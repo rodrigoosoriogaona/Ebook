@@ -13,7 +13,6 @@ public class Libro {
     private Long idLibro;
     private String titulo;
     private String autor;
-    private String isbn;
     private String descripcion;
     private Double precio;
     private Integer stock;

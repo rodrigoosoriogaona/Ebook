@@ -7,6 +7,7 @@ import com.ecommerce.productos.domain.model.gateway.IntercambioGateway;
 import com.ecommerce.productos.domain.model.gateway.UsuarioGateway;
 import lombok.RequiredArgsConstructor;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @RequiredArgsConstructor
 public class IntercambioUseCase {
@@ -91,6 +92,5 @@ public class IntercambioUseCase {
         return intercambioGateway.buscarPorId(intercambioId)
                 .orElseThrow(() -> new IntercambioNoEncontradoException("Intercambio no encontrado con ID: " + intercambioId));
     }
-
 
 }
