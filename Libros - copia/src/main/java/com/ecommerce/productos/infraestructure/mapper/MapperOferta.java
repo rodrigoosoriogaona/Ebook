@@ -10,18 +10,26 @@ public class MapperOferta {
     public OfertaIntercambioData toData(OfertaIntercambio oferta) {
         OfertaIntercambioData ofertaData = new OfertaIntercambioData();
         ofertaData.setIdOferta(oferta.getIdOferta());
-        ofertaData.setIntercambioId(oferta.getIntercambioId());
+        ofertaData.setPublicacionId(oferta.getPublicacionId());
+        ofertaData.setUsuarioOferenteId(oferta.getUsuarioOferenteId());
+        ofertaData.setLibroOfrecidoId(oferta.getLibroOfrecidoId());
         ofertaData.setMensaje(oferta.getMensaje());
-        ofertaData.setAceptada(oferta.getAceptada());
+        ofertaData.setEstado(oferta.getEstado());
+        ofertaData.setFechaCreacion(oferta.getFechaCreacion());
+        ofertaData.setFechaActualizacion(oferta.getFechaActualizacion());
         return ofertaData;
     }
 
     public OfertaIntercambio toDomain(OfertaIntercambioData ofertaData) {
         OfertaIntercambio oferta = new OfertaIntercambio();
         oferta.setIdOferta(ofertaData.getIdOferta());
-        oferta.setIntercambioId(ofertaData.getIntercambioId());
+        oferta.setPublicacionId(ofertaData.getPublicacionId());
+        oferta.setUsuarioOferenteId(ofertaData.getUsuarioOferenteId());
+        oferta.setLibroOfrecidoId(ofertaData.getLibroOfrecidoId());
         oferta.setMensaje(ofertaData.getMensaje());
-        oferta.setAceptada(ofertaData.getAceptada());
+        oferta.setEstado(ofertaData.getEstado());
+        oferta.setFechaCreacion(ofertaData.getFechaCreacion());
+        oferta.setFechaActualizacion(ofertaData.getFechaActualizacion());
         return oferta;
     }
 }

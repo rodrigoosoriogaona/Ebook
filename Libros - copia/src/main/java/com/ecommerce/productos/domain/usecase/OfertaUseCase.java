@@ -12,27 +12,32 @@ public class OfertaUseCase {
     private final OfertaGateway ofertaGateway;
     private final IntercambioUseCase intercambioUseCase;
 
-    public OfertaIntercambio crearOferta(Long intercambioId, String mensaje) {
-        // Verificar que el intercambio existe
-        intercambioUseCase.consultarIntercambio(intercambioId);
+    public OfertaIntercambio crearOferta(Long publicacionId, Long usuarioOferenteId, Long libroOfrecidoId, String mensaje) {
+        // Verificar que la publicación existe - usando el método correcto
+        intercambioUseCase.consultarPublicacion(publicacionId);
 
         OfertaIntercambio oferta = new OfertaIntercambio();
-        oferta.setIntercambioId(intercambioId);
+        oferta.setPublicacionId(publicacionId); // Cambiado de intercambioId a publicacionId
+        oferta.setUsuarioOferenteId(usuarioOferenteId);
+        oferta.setLibroOfrecidoId(libroOfrecidoId);
         oferta.setMensaje(mensaje);
-        oferta.setAceptada(false);
+        oferta.setEstado("PENDIENTE"); // Cambiado de aceptada a estado
+        oferta.setFechaCreacion(java.time.LocalDateTime.now());
+        oferta.setFechaActualizacion(java.time.LocalDateTime.now());
 
         return ofertaGateway.guardar(oferta);
     }
 
-    public List<OfertaIntercambio> buscarOfertasPorIntercambio(Long intercambioId) {
-        return ofertaGateway.buscarPorIntercambioId(intercambioId);
+    public List<OfertaIntercambio> buscarOfertasPorIntercambio(Long publicacionId) {
+        return ofertaGateway.buscarPorPublicacionId(publicacionId);
     }
 
     public OfertaIntercambio aceptarOferta(Long ofertaId) {
         OfertaIntercambio oferta = ofertaGateway.buscarPorId(ofertaId)
                 .orElseThrow(() -> new IntercambioNoEncontradoException("Oferta no encontrada"));
 
-        oferta.setAceptada(true);
+        oferta.setEstado("ACEPTADA");
+        oferta.setFechaActualizacion(java.time.LocalDateTime.now());
         return ofertaGateway.guardar(oferta);
     }
 }

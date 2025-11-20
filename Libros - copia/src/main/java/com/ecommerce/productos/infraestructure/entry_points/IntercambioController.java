@@ -1,8 +1,10 @@
 package com.ecommerce.productos.infraestructure.entry_points;
 
 import com.ecommerce.productos.domain.exception.*;
-import com.ecommerce.productos.domain.model.Intercambio;
+import com.ecommerce.productos.domain.model.OfertaIntercambio;
+import com.ecommerce.productos.domain.model.PublicacionIntercambio;
 import com.ecommerce.productos.domain.usecase.IntercambioUseCase;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,66 +20,208 @@ public class IntercambioController {
 
     private final IntercambioUseCase intercambioUseCase;
 
-    @PostMapping("/crear")
-    public ResponseEntity<?> crearIntercambio(@RequestParam Long usuarioOfreceId,
-                                              @RequestParam Long libroOfrecidoId,
-                                              @RequestParam Long libroSolicitadoId) {
+    // ==================== PUBLICACIONES ====================
+
+    /**
+     * Crea una publicación de intercambio (libro ofrecido visible para todos)
+     * POST /api/ecommerce/intercambios/publicaciones/crear
+     */
+    @PostMapping("/publicaciones/crear")
+    public ResponseEntity<?> crearPublicacion(@RequestBody CrearPublicacionRequest request) {
         try {
-            Intercambio intercambio = intercambioUseCase.crearIntercambio(usuarioOfreceId, libroOfrecidoId, libroSolicitadoId);
-            return ResponseEntity.ok(intercambio);
+            PublicacionIntercambio publicacion = intercambioUseCase.crearPublicacion(
+                    request.getUsuarioPropietarioId(),
+                    request.getLibroOfrecidoId(),
+                    request.getDescripcion()
+            );
+            return ResponseEntity.status(HttpStatus.CREATED).body(publicacion);
         } catch (UsuarioNoEncontradoException | UsuarioNoAutorizadoException |
-                 LibroNoDisponibleException | IntercambioNoValidoException e) {
+                 LibroNoDisponibleException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error al crear intercambio: " + e.getMessage());
+                    .body("Error al crear publicación: " + e.getMessage());
         }
     }
 
-    @PutMapping("/aceptar/{intercambioId}")
-    public ResponseEntity<?> aceptarIntercambio(@PathVariable Long intercambioId,
-                                                @RequestParam Long usuarioSolicitaId) {
+    /**
+     * Lista todas las publicaciones activas (visible para todos)
+     * GET /api/ecommerce/intercambios/publicaciones/activas
+     */
+    @GetMapping("/publicaciones/activas")
+    public ResponseEntity<?> listarPublicacionesActivas() {
         try {
-            Intercambio intercambio = intercambioUseCase.aceptarIntercambio(intercambioId, usuarioSolicitaId);
-            return ResponseEntity.ok(intercambio);
-        } catch (IntercambioNoEncontradoException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        } catch (UsuarioNoAutorizadoException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+            List<PublicacionIntercambio> publicaciones = intercambioUseCase.listarPublicacionesActivas();
+            return ResponseEntity.ok(publicaciones);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error al aceptar intercambio: " + e.getMessage());
+                    .body("Error al listar publicaciones: " + e.getMessage());
         }
     }
 
-    @PutMapping("/rechazar/{intercambioId}")
-    public ResponseEntity<?> rechazarIntercambio(@PathVariable Long intercambioId,
-                                                 @RequestParam Long usuarioId) {
+    /**
+     * Lista mis publicaciones (del usuario autenticado)
+     * GET /api/ecommerce/intercambios/publicaciones/mis-publicaciones/{usuarioId}
+     */
+    @GetMapping("/publicaciones/mis-publicaciones/{usuarioId}")
+    public ResponseEntity<?> listarMisPublicaciones(@PathVariable Long usuarioId) {
         try {
-            Intercambio intercambio = intercambioUseCase.rechazarIntercambio(intercambioId, usuarioId);
-            return ResponseEntity.ok(intercambio);
-        } catch (IntercambioNoEncontradoException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        } catch (UsuarioNoAutorizadoException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+            List<PublicacionIntercambio> publicaciones = intercambioUseCase.listarMisPublicaciones(usuarioId);
+            return ResponseEntity.ok(publicaciones);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error al rechazar intercambio: " + e.getMessage());
+                    .body("Error al listar mis publicaciones: " + e.getMessage());
         }
     }
 
-    @GetMapping("/{intercambioId}")
-    public ResponseEntity<?> consultarIntercambio(@PathVariable Long intercambioId) {
+    /**
+     * Consulta una publicación específica
+     * GET /api/ecommerce/intercambios/publicaciones/{publicacionId}
+     */
+    @GetMapping("/publicaciones/{publicacionId}")
+    public ResponseEntity<?> consultarPublicacion(@PathVariable Long publicacionId) {
         try {
-            Intercambio intercambio = intercambioUseCase.consultarIntercambio(intercambioId);
-            return ResponseEntity.ok(intercambio);
+            PublicacionIntercambio publicacion = intercambioUseCase.consultarPublicacion(publicacionId);
+            return ResponseEntity.ok(publicacion);
         } catch (IntercambioNoEncontradoException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error al consultar intercambio: " + e.getMessage());
+                    .body("Error al consultar publicación: " + e.getMessage());
         }
     }
 
+    // ==================== OFERTAS ====================
 
+    /**
+     * Crea una oferta sobre una publicación activa
+     * POST /api/ecommerce/intercambios/ofertas/crear
+     */
+    @PostMapping("/ofertas/crear")
+    public ResponseEntity<?> crearOferta(@RequestBody CrearOfertaRequest request) {
+        try {
+            OfertaIntercambio oferta = intercambioUseCase.crearOferta(
+                    request.getPublicacionId(),
+                    request.getUsuarioOferenteId(),
+                    request.getLibroOfrecidoId(),
+                    request.getMensaje()
+            );
+            return ResponseEntity.status(HttpStatus.CREATED).body(oferta);
+        } catch (IntercambioNoEncontradoException | IntercambioNoValidoException |
+                 UsuarioNoAutorizadoException | LibroNoDisponibleException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error al crear oferta: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Aceptar una oferta (solo el dueño de la publicación)
+     * PUT /api/ecommerce/intercambios/ofertas/{ofertaId}/aceptar
+     */
+    @PutMapping("/ofertas/{ofertaId}/aceptar")
+    public ResponseEntity<?> aceptarOferta(@PathVariable Long ofertaId,
+                                           @RequestBody AccionOfertaRequest request) {
+        try {
+            OfertaIntercambio oferta = intercambioUseCase.aceptarOferta(ofertaId, request.getUsuarioPropietarioId());
+            return ResponseEntity.ok(oferta);
+        } catch (IntercambioNoEncontradoException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (UsuarioNoAutorizadoException | IntercambioNoValidoException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error al aceptar oferta: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Rechazar una oferta (solo el dueño de la publicación)
+     * PUT /api/ecommerce/intercambios/ofertas/{ofertaId}/rechazar
+     */
+    @PutMapping("/ofertas/{ofertaId}/rechazar")
+    public ResponseEntity<?> rechazarOferta(@PathVariable Long ofertaId,
+                                            @RequestBody AccionOfertaRequest request) {
+        try {
+            OfertaIntercambio oferta = intercambioUseCase.rechazarOferta(ofertaId, request.getUsuarioPropietarioId());
+            return ResponseEntity.ok(oferta);
+        } catch (IntercambioNoEncontradoException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (UsuarioNoAutorizadoException | IntercambioNoValidoException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error al rechazar oferta: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Lista todas las ofertas recibidas para una publicación
+     * GET /api/ecommerce/intercambios/publicaciones/{publicacionId}/ofertas
+     */
+    @GetMapping("/publicaciones/{publicacionId}/ofertas")
+    public ResponseEntity<?> listarOfertasDePublicacion(@PathVariable Long publicacionId) {
+        try {
+            List<OfertaIntercambio> ofertas = intercambioUseCase.listarOfertasDePublicacion(publicacionId);
+            return ResponseEntity.ok(ofertas);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error al listar ofertas: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Lista mis ofertas realizadas (como oferente)
+     * GET /api/ecommerce/intercambios/ofertas/mis-ofertas/{usuarioId}
+     */
+    @GetMapping("/ofertas/mis-ofertas/{usuarioId}")
+    public ResponseEntity<?> listarMisOfertas(@PathVariable Long usuarioId) {
+        try {
+            List<OfertaIntercambio> ofertas = intercambioUseCase.listarMisOfertas(usuarioId);
+            return ResponseEntity.ok(ofertas);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error al listar mis ofertas: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Consulta una oferta específica
+     * GET /api/ecommerce/intercambios/ofertas/{ofertaId}
+     */
+    @GetMapping("/ofertas/{ofertaId}")
+    public ResponseEntity<?> consultarOferta(@PathVariable Long ofertaId) {
+        try {
+            OfertaIntercambio oferta = intercambioUseCase.consultarOferta(ofertaId);
+            return ResponseEntity.ok(oferta);
+        } catch (IntercambioNoEncontradoException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error al consultar oferta: " + e.getMessage());
+        }
+    }
+
+    // ==================== DTOs ====================
+
+    @Data
+    public static class CrearPublicacionRequest {
+        private Long usuarioPropietarioId;
+        private Long libroOfrecidoId;
+        private String descripcion;
+    }
+
+    @Data
+    public static class CrearOfertaRequest {
+        private Long publicacionId;
+        private Long usuarioOferenteId;
+        private Long libroOfrecidoId;
+        private String mensaje;
+    }
+
+    @Data
+    public static class AccionOfertaRequest {
+        private Long usuarioPropietarioId;
+    }
 }

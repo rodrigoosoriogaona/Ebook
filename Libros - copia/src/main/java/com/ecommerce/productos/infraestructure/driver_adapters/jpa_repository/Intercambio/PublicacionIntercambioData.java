@@ -7,23 +7,21 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "oferta_intercambio")
+@Table(name = "publicacion_intercambio")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class OfertaIntercambioData {
+public class PublicacionIntercambioData {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long idOferta;
+    private Long idPublicacion;
 
-    private Long publicacionId;
-    private Long usuarioOferenteId;
     private Long libroOfrecidoId;
+    private Long usuarioPropietarioId;
+    private String estado; // ACTIVA, CERRADA
 
     @Column(length = 500)
-    private String mensaje;
-
-    private String estado;
+    private String descripcion;
 
     @Column(name = "fecha_creacion")
     private LocalDateTime fechaCreacion;

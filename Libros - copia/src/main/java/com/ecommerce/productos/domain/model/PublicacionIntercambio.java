@@ -10,13 +10,12 @@ import java.time.LocalDateTime;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class OfertaIntercambio {
-    private Long idOferta;
-    private Long publicacionId;
-    private Long usuarioOferenteId;
+public class PublicacionIntercambio {
+    private Long idPublicacion;
     private Long libroOfrecidoId;
-    private String mensaje;
-    private String estado; // PENDIENTE, ACEPTADA, RECHAZADA
+    private Long usuarioPropietarioId;
+    private String estado; // ACTIVA, CERRADA
+    private String descripcion;
     private LocalDateTime fechaCreacion;
     private LocalDateTime fechaActualizacion;
 }

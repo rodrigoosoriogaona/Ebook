@@ -1,96 +1,208 @@
 package com.ecommerce.productos.domain.usecase;
 
 import com.ecommerce.productos.domain.exception.*;
-import com.ecommerce.productos.domain.model.Intercambio;
 import com.ecommerce.productos.domain.model.Libro;
-import com.ecommerce.productos.domain.model.gateway.IntercambioGateway;
+import com.ecommerce.productos.domain.model.OfertaIntercambio;
+import com.ecommerce.productos.domain.model.PublicacionIntercambio;
+import com.ecommerce.productos.domain.model.gateway.OfertaGateway;
+import com.ecommerce.productos.domain.model.gateway.PublicacionIntercambioGateway;
 import com.ecommerce.productos.domain.model.gateway.UsuarioGateway;
 import lombok.RequiredArgsConstructor;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 public class IntercambioUseCase {
 
-    private final IntercambioGateway intercambioGateway;
+    private final PublicacionIntercambioGateway publicacionGateway;
+    private final OfertaGateway ofertaGateway;
     private final LibroUseCase libroUseCase;
     private final UsuarioGateway usuarioGateway;
 
-    public Intercambio crearIntercambio(Long usuarioOfreceId, Long libroOfrecidoId, Long libroSolicitadoId) {
-        if (!usuarioGateway.usuarioExiste(usuarioOfreceId)) {
-            throw new UsuarioNoEncontradoException("Usuario no encontrado con ID: " + usuarioOfreceId);
+    // ========== CREAR PUBLICACIÓN ==========
+    public PublicacionIntercambio crearPublicacion(Long usuarioPropietarioId, Long libroOfrecidoId, String descripcion) {
+        // Validar que el usuario existe
+        if (!usuarioGateway.usuarioExiste(usuarioPropietarioId)) {
+            throw new UsuarioNoEncontradoException("Usuario no encontrado con ID: " + usuarioPropietarioId);
         }
 
+        // Validar que el libro existe y pertenece al usuario
+        Libro libro = libroUseCase.consultarLibro(libroOfrecidoId);
+        if (!libro.getUsuarioId().equals(usuarioPropietarioId)) {
+            throw new UsuarioNoAutorizadoException("El libro no pertenece al usuario");
+        }
+
+        if (!libro.getDisponible()) {
+            throw new LibroNoDisponibleException("El libro no está disponible para intercambio");
+        }
+
+        // Crear publicación
+        PublicacionIntercambio publicacion = new PublicacionIntercambio();
+        publicacion.setLibroOfrecidoId(libroOfrecidoId);
+        publicacion.setUsuarioPropietarioId(usuarioPropietarioId);
+        publicacion.setEstado("ACTIVA");
+        publicacion.setDescripcion(descripcion);
+        publicacion.setFechaCreacion(LocalDateTime.now());
+        publicacion.setFechaActualizacion(LocalDateTime.now());
+
+        return publicacionGateway.guardar(publicacion);
+    }
+
+    // ========== CREAR OFERTA ==========
+    public OfertaIntercambio crearOferta(Long publicacionId, Long usuarioOferenteId, Long libroOfrecidoId, String mensaje) {
+        // Validar que la publicación existe y está activa
+        PublicacionIntercambio publicacion = publicacionGateway.buscarPorId(publicacionId)
+                .orElseThrow(() -> new IntercambioNoEncontradoException("Publicación no encontrada"));
+
+        if (!"ACTIVA".equals(publicacion.getEstado())) {
+            throw new IntercambioNoValidoException("La publicación no está activa");
+        }
+
+        // Validar que el usuario no es el dueño de la publicación
+        if (publicacion.getUsuarioPropietarioId().equals(usuarioOferenteId)) {
+            throw new IntercambioNoValidoException("No puedes ofertar en tu propia publicación");
+        }
+
+        // Validar que el libro ofrecido existe y pertenece al usuario oferente
         Libro libroOfrecido = libroUseCase.consultarLibro(libroOfrecidoId);
-        Libro libroSolicitado = libroUseCase.consultarLibro(libroSolicitadoId);
-
-        // Validaciones
-        if (!libroOfrecido.getUsuarioId().equals(usuarioOfreceId)) {
-            throw new UsuarioNoAutorizadoException("No eres el dueño del libro ofrecido");
+        if (!libroOfrecido.getUsuarioId().equals(usuarioOferenteId)) {
+            throw new UsuarioNoAutorizadoException("El libro ofrecido no pertenece al usuario");
         }
 
-        if (!libroOfrecido.getDisponible() || !libroSolicitado.getDisponible()) {
-            throw new LibroNoDisponibleException("Uno o ambos libros no están disponibles para intercambio");
+        if (!libroOfrecido.getDisponible()) {
+            throw new LibroNoDisponibleException("El libro ofrecido no está disponible");
         }
 
-        if (libroOfrecido.getUsuarioId().equals(libroSolicitado.getUsuarioId())) {
-            throw new IntercambioNoValidoException("No puedes intercambiar libros del mismo usuario");
-        }
+        // Crear oferta
+        OfertaIntercambio oferta = new OfertaIntercambio();
+        oferta.setPublicacionId(publicacionId);
+        oferta.setUsuarioOferenteId(usuarioOferenteId);
+        oferta.setLibroOfrecidoId(libroOfrecidoId);
+        oferta.setMensaje(mensaje);
+        oferta.setEstado("PENDIENTE");
+        oferta.setFechaCreacion(LocalDateTime.now());
+        oferta.setFechaActualizacion(LocalDateTime.now());
 
-        Intercambio intercambio = new Intercambio();
-        intercambio.setLibroOfrecidoId(libroOfrecidoId);
-        intercambio.setLibroSolicitadoId(libroSolicitadoId);
-        intercambio.setUsuarioOfreceId(usuarioOfreceId);
-        intercambio.setUsuarioSolicitaId(libroSolicitado.getUsuarioId());
-        intercambio.setEstado("OFERTADO");
-        intercambio.setFechaCreacion(LocalDateTime.now());
-        intercambio.setFechaActualizacion(LocalDateTime.now());
-
-        return intercambioGateway.guardar(intercambio);
+        return ofertaGateway.guardar(oferta);
     }
 
-    public Intercambio aceptarIntercambio(Long intercambioId, Long usuarioSolicitaId) {
-        Intercambio intercambio = intercambioGateway.buscarPorId(intercambioId)
-                .orElseThrow(() -> new IntercambioNoEncontradoException("Intercambio no encontrado"));
+    // ========== ACEPTAR OFERTA ==========
+    public OfertaIntercambio aceptarOferta(Long ofertaId, Long usuarioPropietarioId) {
+        // Buscar la oferta
+        OfertaIntercambio oferta = ofertaGateway.buscarPorId(ofertaId)
+                .orElseThrow(() -> new IntercambioNoEncontradoException("Oferta no encontrada"));
 
-        if (!intercambio.getUsuarioSolicitaId().equals(usuarioSolicitaId)) {
-            throw new UsuarioNoAutorizadoException("No autorizado para aceptar este intercambio");
+        // Buscar la publicación
+        PublicacionIntercambio publicacion = publicacionGateway.buscarPorId(oferta.getPublicacionId())
+                .orElseThrow(() -> new IntercambioNoEncontradoException("Publicación no encontrada"));
+
+        // Validar que el usuario es el dueño de la publicación
+        if (!publicacion.getUsuarioPropietarioId().equals(usuarioPropietarioId)) {
+            throw new UsuarioNoAutorizadoException("Solo el dueño puede aceptar ofertas");
         }
 
-        intercambio.setEstado("ACEPTADO");
-        intercambio.setFechaActualizacion(LocalDateTime.now());
-
-        // Marcar libros como no disponibles
-        Libro libroOfrecido = libroUseCase.consultarLibro(intercambio.getLibroOfrecidoId());
-        Libro libroSolicitado = libroUseCase.consultarLibro(intercambio.getLibroSolicitadoId());
-
-        libroOfrecido.setDisponible(false);
-        libroSolicitado.setDisponible(false);
-
-        libroUseCase.actualizarLibro(libroOfrecido.getIdLibro(), libroOfrecido);
-        libroUseCase.actualizarLibro(libroSolicitado.getIdLibro(), libroSolicitado);
-
-        return intercambioGateway.guardar(intercambio);
-    }
-
-    public Intercambio rechazarIntercambio(Long intercambioId, Long usuarioId) {
-        Intercambio intercambio = intercambioGateway.buscarPorId(intercambioId)
-                .orElseThrow(() -> new IntercambioNoEncontradoException("Intercambio no encontrado"));
-
-        if (!intercambio.getUsuarioSolicitaId().equals(usuarioId) &&
-                !intercambio.getUsuarioOfreceId().equals(usuarioId)) {
-            throw new UsuarioNoAutorizadoException("No autorizado para rechazar este intercambio");
+        // Validar que la publicación está activa
+        if (!"ACTIVA".equals(publicacion.getEstado())) {
+            throw new IntercambioNoValidoException("La publicación no está activa");
         }
 
-        intercambio.setEstado("RECHAZADO");
-        intercambio.setFechaActualizacion(LocalDateTime.now());
+        // Validar que la oferta está pendiente
+        if (!"PENDIENTE".equals(oferta.getEstado())) {
+            throw new IntercambioNoValidoException("La oferta no está pendiente");
+        }
 
-        return intercambioGateway.guardar(intercambio);
+        // Aceptar la oferta
+        oferta.setEstado("ACEPTADA");
+        oferta.setFechaActualizacion(LocalDateTime.now());
+        ofertaGateway.guardar(oferta);
+
+        // Cerrar la publicación
+        publicacion.setEstado("CERRADA");
+        publicacion.setFechaActualizacion(LocalDateTime.now());
+        publicacionGateway.guardar(publicacion);
+
+        // Rechazar todas las demás ofertas pendientes
+        List<OfertaIntercambio> todasLasOfertas = ofertaGateway.buscarPorPublicacionId(publicacion.getIdPublicacion());
+        List<Long> idsOfertasPendientes = todasLasOfertas.stream()
+                .filter(o -> "PENDIENTE".equals(o.getEstado()) && !o.getIdOferta().equals(ofertaId))
+                .map(OfertaIntercambio::getIdOferta)
+                .collect(Collectors.toList());
+
+        if (!idsOfertasPendientes.isEmpty()) {
+            ofertaGateway.actualizarEstadoMasivo(idsOfertasPendientes, "RECHAZADA");
+        }
+
+        // OPCIONAL: Marcar libros como "No disponible" o "Intercambiado"
+        Libro libroPublicacion = libroUseCase.consultarLibro(publicacion.getLibroOfrecidoId());
+        libroPublicacion.setDisponible(false);
+        libroPublicacion.setEstado("INTERCAMBIADO");
+        libroUseCase.actualizarLibro(libroPublicacion.getIdLibro(), libroPublicacion);
+
+        Libro libroOferta = libroUseCase.consultarLibro(oferta.getLibroOfrecidoId());
+        libroOferta.setDisponible(false);
+        libroOferta.setEstado("INTERCAMBIADO");
+        libroUseCase.actualizarLibro(libroOferta.getIdLibro(), libroOferta);
+
+        return oferta;
     }
 
-    public Intercambio consultarIntercambio(Long intercambioId) {
-        return intercambioGateway.buscarPorId(intercambioId)
-                .orElseThrow(() -> new IntercambioNoEncontradoException("Intercambio no encontrado con ID: " + intercambioId));
+    // ========== RECHAZAR OFERTA ==========
+    public OfertaIntercambio rechazarOferta(Long ofertaId, Long usuarioPropietarioId) {
+        // Buscar la oferta
+        OfertaIntercambio oferta = ofertaGateway.buscarPorId(ofertaId)
+                .orElseThrow(() -> new IntercambioNoEncontradoException("Oferta no encontrada"));
+
+        // Buscar la publicación
+        PublicacionIntercambio publicacion = publicacionGateway.buscarPorId(oferta.getPublicacionId())
+                .orElseThrow(() -> new IntercambioNoEncontradoException("Publicación no encontrada"));
+
+        // Validar que el usuario es el dueño de la publicación
+        if (!publicacion.getUsuarioPropietarioId().equals(usuarioPropietarioId)) {
+            throw new UsuarioNoAutorizadoException("Solo el dueño puede rechazar ofertas");
+        }
+
+        // Validar que la oferta está pendiente
+        if (!"PENDIENTE".equals(oferta.getEstado())) {
+            throw new IntercambioNoValidoException("La oferta no está pendiente");
+        }
+
+        // Rechazar la oferta
+        oferta.setEstado("RECHAZADA");
+        oferta.setFechaActualizacion(LocalDateTime.now());
+
+        return ofertaGateway.guardar(oferta);
     }
 
+    // ========== CONSULTAR PUBLICACIONES ==========
+    public List<PublicacionIntercambio> listarPublicacionesActivas() {
+        return publicacionGateway.buscarActivas();
+    }
+
+    public List<PublicacionIntercambio> listarMisPublicaciones(Long usuarioId) {
+        return publicacionGateway.buscarPorUsuario(usuarioId);
+    }
+
+    public PublicacionIntercambio consultarPublicacion(Long publicacionId) {
+        return publicacionGateway.buscarPorId(publicacionId)
+                .orElseThrow(() -> new IntercambioNoEncontradoException("Publicación no encontrada"));
+    }
+
+    // ========== CONSULTAR OFERTAS ==========
+    public List<OfertaIntercambio> listarOfertasDePublicacion(Long publicacionId) {
+        return ofertaGateway.buscarPorPublicacionId(publicacionId);
+    }
+
+    public List<OfertaIntercambio> listarMisOfertas(Long usuarioId) {
+        return ofertaGateway.buscarPorUsuarioOferente(usuarioId);
+    }
+
+    public OfertaIntercambio consultarOferta(Long ofertaId) {
+        return ofertaGateway.buscarPorId(ofertaId)
+                .orElseThrow(() -> new IntercambioNoEncontradoException("Oferta no encontrada"));
+    }
+
+    public void consultarIntercambio(Long intercambioId) {
+    }
 }
+

@@ -22,10 +22,11 @@ public class TransaccionUseCaseConfig {
     }
 
     @Bean
-    public IntercambioUseCase intercambioUseCase(IntercambioGateway intercambioGateway,
+    public IntercambioUseCase intercambioUseCase(PublicacionIntercambioGateway publicacionGateway,
+                                                 OfertaGateway ofertaGateway,
                                                  LibroUseCase libroUseCase,
                                                  UsuarioGateway usuarioGateway) {
-        return new IntercambioUseCase(intercambioGateway, libroUseCase, usuarioGateway);
+        return new IntercambioUseCase(publicacionGateway, ofertaGateway, libroUseCase, usuarioGateway);
     }
 
     @Bean
@@ -38,8 +39,4 @@ public class TransaccionUseCaseConfig {
         return new CompraUseCase(compraGateway, transaccionUseCase);
     }
 
-    @Bean
-    public OfertaUseCase ofertaUseCase(OfertaGateway ofertaGateway, IntercambioUseCase intercambioUseCase) {
-        return new OfertaUseCase(ofertaGateway, intercambioUseCase);
-    }
 }
