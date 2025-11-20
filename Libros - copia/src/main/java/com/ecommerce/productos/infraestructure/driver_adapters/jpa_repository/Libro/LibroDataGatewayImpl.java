@@ -52,6 +52,16 @@ public class LibroDataGatewayImpl implements LibroGateway {
     }
 
     @Override
+    public List<Libro> buscarTodos() {
+        return List.of();
+    }
+
+    @Override
+    public List<Libro> buscarDisponibles() {
+        return List.of();
+    }
+
+    @Override
     public void eliminarLibro(Long idLibro) {
         repository.deleteById(idLibro);
     }

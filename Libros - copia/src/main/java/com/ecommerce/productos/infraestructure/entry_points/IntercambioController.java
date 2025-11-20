@@ -20,6 +20,7 @@ public class IntercambioController {
 
     private final IntercambioUseCase intercambioUseCase;
 
+<<<<<<< HEAD
     // ==================== PUBLICACIONES ====================
 
     /**
@@ -35,6 +36,29 @@ public class IntercambioController {
                     request.getDescripcion()
             );
             return ResponseEntity.status(HttpStatus.CREATED).body(publicacion);
+=======
+    @Data
+    public static class CrearIntercambioRequest {
+        private Long usuarioOfreceId;
+        private Long libroOfrecidoId;
+        private Long libroSolicitadoId;
+    }
+
+    @Data
+    public static class AceptarRechazarIntercambioRequest {
+        private Long usuarioId;
+    }
+
+    @PostMapping("/crear")
+    public ResponseEntity<?> crearIntercambio(@RequestBody CrearIntercambioRequest request) {
+        try {
+            Intercambio intercambio = intercambioUseCase.crearIntercambio(
+                    request.getUsuarioOfreceId(),
+                    request.getLibroOfrecidoId(),
+                    request.getLibroSolicitadoId()
+            );
+            return ResponseEntity.ok(intercambio);
+>>>>>>> eb0f305b7911991f9645f69c3337dc42faae76c4
         } catch (UsuarioNoEncontradoException | UsuarioNoAutorizadoException |
                  LibroNoDisponibleException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
@@ -44,6 +68,7 @@ public class IntercambioController {
         }
     }
 
+<<<<<<< HEAD
     /**
      * Lista todas las publicaciones activas (visible para todos)
      * GET /api/ecommerce/intercambios/publicaciones/activas
@@ -53,12 +78,25 @@ public class IntercambioController {
         try {
             List<PublicacionIntercambio> publicaciones = intercambioUseCase.listarPublicacionesActivas();
             return ResponseEntity.ok(publicaciones);
+=======
+    @PutMapping("/aceptar/{intercambioId}")
+    public ResponseEntity<?> aceptarIntercambio(@PathVariable Long intercambioId,
+                                                @RequestBody AceptarRechazarIntercambioRequest request) {
+        try {
+            Intercambio intercambio = intercambioUseCase.aceptarIntercambio(intercambioId, request.getUsuarioId());
+            return ResponseEntity.ok(intercambio);
+        } catch (IntercambioNoEncontradoException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (UsuarioNoAutorizadoException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+>>>>>>> eb0f305b7911991f9645f69c3337dc42faae76c4
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error al listar publicaciones: " + e.getMessage());
         }
     }
 
+<<<<<<< HEAD
     /**
      * Lista mis publicaciones (del usuario autenticado)
      * GET /api/ecommerce/intercambios/publicaciones/mis-publicaciones/{usuarioId}
@@ -68,6 +106,18 @@ public class IntercambioController {
         try {
             List<PublicacionIntercambio> publicaciones = intercambioUseCase.listarMisPublicaciones(usuarioId);
             return ResponseEntity.ok(publicaciones);
+=======
+    @PutMapping("/rechazar/{intercambioId}")
+    public ResponseEntity<?> rechazarIntercambio(@PathVariable Long intercambioId,
+                                                 @RequestBody AceptarRechazarIntercambioRequest request) {
+        try {
+            Intercambio intercambio = intercambioUseCase.rechazarIntercambio(intercambioId, request.getUsuarioId());
+            return ResponseEntity.ok(intercambio);
+        } catch (IntercambioNoEncontradoException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (UsuarioNoAutorizadoException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+>>>>>>> eb0f305b7911991f9645f69c3337dc42faae76c4
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error al listar mis publicaciones: " + e.getMessage());
@@ -90,6 +140,7 @@ public class IntercambioController {
                     .body("Error al consultar publicación: " + e.getMessage());
         }
     }
+<<<<<<< HEAD
 
     // ==================== OFERTAS ====================
 
@@ -224,4 +275,6 @@ public class IntercambioController {
     public static class AccionOfertaRequest {
         private Long usuarioPropietarioId;
     }
+=======
+>>>>>>> eb0f305b7911991f9645f69c3337dc42faae76c4
 }
