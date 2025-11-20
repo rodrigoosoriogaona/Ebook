@@ -10,6 +10,8 @@ public interface LibroGateway {
     List<Libro> buscarPorUsuarioId(Long usuarioId);
     List<Libro> buscarPorTitulo(String titulo);
     List<Libro> buscarPorAutor(String autor);
+    List<Libro> buscarTodos(); // NUEVO: Listar todos los libros
+    List<Libro> buscarDisponibles(); // NUEVO: Listar solo disponibles
     void eliminarLibro(Long idLibro);
     boolean existeLibro(Long idLibro);
 }
