@@ -3,6 +3,7 @@ package com.ecommerce.productos.infraestructure.entry_points;
 import com.ecommerce.productos.domain.exception.*;
 import com.ecommerce.productos.domain.model.Intercambio;
 import com.ecommerce.productos.domain.usecase.IntercambioUseCase;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,12 +19,26 @@ public class IntercambioController {
 
     private final IntercambioUseCase intercambioUseCase;
 
+    @Data
+    public static class CrearIntercambioRequest {
+        private Long usuarioOfreceId;
+        private Long libroOfrecidoId;
+        private Long libroSolicitadoId;
+    }
+
+    @Data
+    public static class AceptarRechazarIntercambioRequest {
+        private Long usuarioId;
+    }
+
     @PostMapping("/crear")
-    public ResponseEntity<?> crearIntercambio(@RequestParam Long usuarioOfreceId,
-                                              @RequestParam Long libroOfrecidoId,
-                                              @RequestParam Long libroSolicitadoId) {
+    public ResponseEntity<?> crearIntercambio(@RequestBody CrearIntercambioRequest request) {
         try {
-            Intercambio intercambio = intercambioUseCase.crearIntercambio(usuarioOfreceId, libroOfrecidoId, libroSolicitadoId);
+            Intercambio intercambio = intercambioUseCase.crearIntercambio(
+                    request.getUsuarioOfreceId(),
+                    request.getLibroOfrecidoId(),
+                    request.getLibroSolicitadoId()
+            );
             return ResponseEntity.ok(intercambio);
         } catch (UsuarioNoEncontradoException | UsuarioNoAutorizadoException |
                  LibroNoDisponibleException | IntercambioNoValidoException e) {
@@ -36,9 +51,9 @@ public class IntercambioController {
 
     @PutMapping("/aceptar/{intercambioId}")
     public ResponseEntity<?> aceptarIntercambio(@PathVariable Long intercambioId,
-                                                @RequestParam Long usuarioSolicitaId) {
+                                                @RequestBody AceptarRechazarIntercambioRequest request) {
         try {
-            Intercambio intercambio = intercambioUseCase.aceptarIntercambio(intercambioId, usuarioSolicitaId);
+            Intercambio intercambio = intercambioUseCase.aceptarIntercambio(intercambioId, request.getUsuarioId());
             return ResponseEntity.ok(intercambio);
         } catch (IntercambioNoEncontradoException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
@@ -52,9 +67,9 @@ public class IntercambioController {
 
     @PutMapping("/rechazar/{intercambioId}")
     public ResponseEntity<?> rechazarIntercambio(@PathVariable Long intercambioId,
-                                                 @RequestParam Long usuarioId) {
+                                                 @RequestBody AceptarRechazarIntercambioRequest request) {
         try {
-            Intercambio intercambio = intercambioUseCase.rechazarIntercambio(intercambioId, usuarioId);
+            Intercambio intercambio = intercambioUseCase.rechazarIntercambio(intercambioId, request.getUsuarioId());
             return ResponseEntity.ok(intercambio);
         } catch (IntercambioNoEncontradoException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
@@ -78,6 +93,4 @@ public class IntercambioController {
                     .body("Error al consultar intercambio: " + e.getMessage());
         }
     }
-
-
 }

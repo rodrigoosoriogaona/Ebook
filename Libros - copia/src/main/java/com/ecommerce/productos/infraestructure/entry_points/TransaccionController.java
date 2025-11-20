@@ -3,6 +3,7 @@ package com.ecommerce.productos.infraestructure.entry_points;
 import com.ecommerce.productos.domain.exception.*;
 import com.ecommerce.productos.domain.model.Transaccion;
 import com.ecommerce.productos.domain.usecase.TransaccionUseCase;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,12 +16,26 @@ public class TransaccionController {
 
     private final TransaccionUseCase transaccionUseCase;
 
+    @Data
+    public static class CrearTransaccionRequest {
+        private Long compradorId;
+        private Long libroId;
+        private Integer cantidad;
+    }
+
+    @Data
+    public static class ConfirmarCancelarTransaccionRequest {
+        private Long usuarioId;
+    }
+
     @PostMapping("/comprar")
-    public ResponseEntity<?> crearTransaccionCompra(@RequestParam Long compradorId,
-                                                    @RequestParam Long libroId,
-                                                    @RequestParam Integer cantidad) {
+    public ResponseEntity<?> crearTransaccionCompra(@RequestBody CrearTransaccionRequest request) {
         try {
-            Transaccion transaccion = transaccionUseCase.crearTransaccionCompra(compradorId, libroId, cantidad);
+            Transaccion transaccion = transaccionUseCase.crearTransaccionCompra(
+                    request.getCompradorId(),
+                    request.getLibroId(),
+                    request.getCantidad()
+            );
             return ResponseEntity.ok(transaccion);
         } catch (UsuarioNoEncontradoException | LibroNoDisponibleException |
                  StockInsuficienteException | TransaccionNoValidaException e) {
@@ -35,9 +50,9 @@ public class TransaccionController {
 
     @PutMapping("/confirmar/{transaccionId}")
     public ResponseEntity<?> confirmarTransaccion(@PathVariable Long transaccionId,
-                                                  @RequestParam Long vendedorId) {
+                                                  @RequestBody ConfirmarCancelarTransaccionRequest request) {
         try {
-            Transaccion transaccion = transaccionUseCase.confirmarTransaccion(transaccionId, vendedorId);
+            Transaccion transaccion = transaccionUseCase.confirmarTransaccion(transaccionId, request.getUsuarioId());
             return ResponseEntity.ok(transaccion);
         } catch (TransaccionNoEncontradaException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
@@ -51,9 +66,9 @@ public class TransaccionController {
 
     @PutMapping("/cancelar/{transaccionId}")
     public ResponseEntity<?> cancelarTransaccion(@PathVariable Long transaccionId,
-                                                 @RequestParam Long usuarioId) {
+                                                 @RequestBody ConfirmarCancelarTransaccionRequest request) {
         try {
-            transaccionUseCase.cancelarTransaccion(transaccionId, usuarioId);
+            transaccionUseCase.cancelarTransaccion(transaccionId, request.getUsuarioId());
             return ResponseEntity.ok("Transacción cancelada correctamente");
         } catch (TransaccionNoEncontradaException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());

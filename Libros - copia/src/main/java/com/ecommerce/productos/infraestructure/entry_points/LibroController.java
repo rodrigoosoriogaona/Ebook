@@ -4,6 +4,7 @@ import com.ecommerce.productos.domain.exception.LibroNoEncontradoException;
 import com.ecommerce.productos.domain.exception.UsuarioNoAutorizadoException;
 import com.ecommerce.productos.domain.model.Libro;
 import com.ecommerce.productos.domain.usecase.LibroUseCase;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -91,10 +92,17 @@ public class LibroController {
         }
     }
 
+    // ... imports y demás métodos iguales ...
+
+    @Data
+    public static class EliminarLibroRequest {
+        private Long usuarioId;
+    }
+
     @DeleteMapping("/eliminar/{idLibro}")
-    public ResponseEntity<?> eliminarLibro(@PathVariable Long idLibro, @RequestParam Long usuarioId) {
+    public ResponseEntity<?> eliminarLibro(@PathVariable Long idLibro, @RequestBody EliminarLibroRequest request) {
         try {
-            libroUseCase.eliminarLibro(idLibro, usuarioId);
+            libroUseCase.eliminarLibro(idLibro, request.getUsuarioId());
             return ResponseEntity.ok("Libro eliminado correctamente");
         } catch (LibroNoEncontradoException | UsuarioNoAutorizadoException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
@@ -104,3 +112,4 @@ public class LibroController {
         }
     }
 }
+
